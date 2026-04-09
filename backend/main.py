@@ -28,15 +28,13 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Portfolio Manager API", version="1.0.0")
 
-FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:3000",
     "http://127.0.0.1:5173",
-    FRONTEND_URL,
+    "https://financial-portfolio-delta.vercel.app",
+    "https://www.financial-portfolio-delta.vercel.app",
 ]
-if "vercel.app" in FRONTEND_URL:
-    ALLOWED_ORIGINS.append(FRONTEND_URL.replace("https://", "https://www."))
 
 app.add_middleware(
     CORSMiddleware,
