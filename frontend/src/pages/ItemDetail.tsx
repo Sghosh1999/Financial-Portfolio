@@ -116,8 +116,9 @@ export default function ItemDetail() {
     );
   }
 
-  const latestEntry = item.entries[0];
-  const previousEntry = item.entries[1];
+  const entries = item.entries || [];
+  const latestEntry = entries[0];
+  const previousEntry = entries[1];
   const changeAmount = latestEntry && previousEntry 
     ? latestEntry.amount - previousEntry.amount 
     : 0;
@@ -129,10 +130,11 @@ export default function ItemDetail() {
   const isPositiveChange = isAsset ? changeAmount >= 0 : changeAmount <= 0;
 
   const sortedEntries = useMemo(() => {
-    return [...item.entries].sort((a, b) => 
+    if (!entries || entries.length === 0) return [];
+    return [...entries].sort((a, b) => 
       new Date(b.date).getTime() - new Date(a.date).getTime()
     );
-  }, [item.entries]);
+  }, [entries]);
 
   const visibleEntries = sortedEntries.slice(0, visibleEntriesCount);
   const hasMoreEntries = sortedEntries.length > visibleEntriesCount;
