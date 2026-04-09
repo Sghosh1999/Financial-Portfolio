@@ -94,6 +94,21 @@ export default function ItemDetail() {
     }
   };
 
+  const sortedEntries = useMemo(() => {
+    if (!item?.entries || item.entries.length === 0) return [];
+    return [...item.entries].sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }, [item?.entries]);
+
+  const visibleEntries = sortedEntries.slice(0, visibleEntriesCount);
+  const hasMoreEntries = sortedEntries.length > visibleEntriesCount;
+  const remainingCount = sortedEntries.length - visibleEntriesCount;
+
+  const handleShowMore = () => {
+    setVisibleEntriesCount(prev => prev + 20);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -116,9 +131,8 @@ export default function ItemDetail() {
     );
   }
 
-  const entries = item.entries || [];
-  const latestEntry = entries[0];
-  const previousEntry = entries[1];
+  const latestEntry = sortedEntries[0];
+  const previousEntry = sortedEntries[1];
   const changeAmount = latestEntry && previousEntry 
     ? latestEntry.amount - previousEntry.amount 
     : 0;
@@ -128,21 +142,6 @@ export default function ItemDetail() {
 
   const isAsset = item.type === 'asset';
   const isPositiveChange = isAsset ? changeAmount >= 0 : changeAmount <= 0;
-
-  const sortedEntries = useMemo(() => {
-    if (!entries || entries.length === 0) return [];
-    return [...entries].sort((a, b) => 
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-  }, [entries]);
-
-  const visibleEntries = sortedEntries.slice(0, visibleEntriesCount);
-  const hasMoreEntries = sortedEntries.length > visibleEntriesCount;
-  const remainingCount = sortedEntries.length - visibleEntriesCount;
-
-  const handleShowMore = () => {
-    setVisibleEntriesCount(prev => prev + 20);
-  };
 
   return (
     <div className="min-h-screen">
