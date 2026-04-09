@@ -81,7 +81,7 @@ export default function NetWorthTrendChart({ compact = false }: NetWorthTrendCha
     { label: 'All', value: 'all' },
   ];
 
-  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; payload: typeof chartData[0] }>; label?: string }) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number; payload: typeof chartData[0] }> }) => {
     if (active && payload && payload.length) {
       const point = payload[0].payload;
       return (
