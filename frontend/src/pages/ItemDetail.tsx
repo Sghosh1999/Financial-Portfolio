@@ -262,9 +262,6 @@ export default function ItemDetail() {
             {item.entries.map((entry, index) => {
               const prevEntry = item.entries[index + 1] as Entry | undefined;
               const entryChange = prevEntry ? entry.amount - prevEntry.amount : 0;
-              const entryChangePercent = prevEntry && prevEntry.amount !== 0
-                ? (entryChange / prevEntry.amount) * 100
-                : null;
               const isEntryPositive = isAsset ? entryChange >= 0 : entryChange <= 0;
 
               return (

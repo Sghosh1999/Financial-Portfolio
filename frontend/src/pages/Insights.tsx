@@ -21,7 +21,6 @@ import {
   Cell,
   PieChart,
   Pie,
-  Legend,
 } from 'recharts';
 import { api } from '../api';
 import type { InsightsSummary, DashboardSummary } from '../types';
@@ -83,16 +82,14 @@ export default function Insights() {
   })) || [];
 
   const renderCustomizedLabel = ({ 
-    cx, cy, midAngle, innerRadius, outerRadius, percent, name, value 
+    cx, cy, midAngle, outerRadius, percent, name 
   }: {
     cx: number;
     cy: number;
     midAngle: number;
-    innerRadius: number;
     outerRadius: number;
     percent: number;
     name: string;
-    value: number;
   }) => {
     const RADIAN = Math.PI / 180;
     const radius = outerRadius + 30;
@@ -424,7 +421,7 @@ export default function Insights() {
                   </div>
                 </div>
                 <span className="text-2xl font-bold font-mono">
-                  {data.liability_ratio.toFixed(1)}%
+                  {(data.liability_ratio ?? 0).toFixed(1)}%
                 </span>
               </div>
 
@@ -432,12 +429,12 @@ export default function Insights() {
               <div className="h-2 bg-dark-800 rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
-                  animate={{ width: `${Math.min(data.liability_ratio, 100)}%` }}
+                  animate={{ width: `${Math.min(data.liability_ratio ?? 0, 100)}%` }}
                   transition={{ delay: 0.5, duration: 0.8, ease: 'easeOut' }}
                   className={`h-full rounded-full ${
-                    data.liability_ratio < 30
+                    (data.liability_ratio ?? 0) < 30
                       ? 'bg-accent-green'
-                      : data.liability_ratio < 60
+                      : (data.liability_ratio ?? 0) < 60
                       ? 'bg-accent-yellow'
                       : 'bg-accent-red'
                   }`}
@@ -464,7 +461,7 @@ export default function Insights() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-accent-blue">•</span>
-                {data.liability_ratio !== null && data.liability_ratio < 30
+                {data.liability_ratio != null && data.liability_ratio < 30
                   ? "Your liability ratio is healthy. Consider investing more."
                   : "Focus on reducing liabilities to improve your financial health."}
               </li>
