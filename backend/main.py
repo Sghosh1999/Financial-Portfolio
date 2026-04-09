@@ -518,9 +518,17 @@ def get_insights(
     monthly_savings_data = []
     for i in range(min(len(savings), 12)):
         month_name = monthly_dates[i].strftime("%b")
+        sav = savings[i] if i < len(savings) else 0
+        nw_end = monthly_net_worths[i] if i < len(monthly_net_worths) else 0.0
+        prior_nw = monthly_net_worths[i + 1] if i + 1 < len(monthly_net_worths) else 0.0
+        rate = None
+        if prior_nw and abs(prior_nw) > 1e-6:
+            rate = (sav / prior_nw) * 100
         monthly_savings_data.append({
             "month": month_name,
-            "savings": savings[i] if i < len(savings) else 0
+            "savings": sav,
+            "net_worth_end": nw_end,
+            "savings_rate_percent": rate,
         })
     monthly_savings_data.reverse()
     

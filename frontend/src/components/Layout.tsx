@@ -1,9 +1,10 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
-import { Home, TrendingUp, User, Plus, LogOut } from 'lucide-react';
+import { Home, TrendingUp, User, Plus, LogOut, Download, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import AddItemModal from './AddItemModal';
+import { exportPortfolioToFile } from '../utils/portfolioExport';
 
 const navItems = [
   { path: '/home', icon: Home, label: 'Home' },
@@ -14,8 +15,21 @@ export default function Layout() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [addType, setAddType] = useState<'asset' | 'liability'>('asset');
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const location = useLocation();
   const { user, logout } = useAuth();
+
+  const handleExportPortfolio = async () => {
+    if (!user?.email) return;
+    setExporting(true);
+    try {
+      await exportPortfolioToFile(user.email, user.name);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handleAddClick = (type: 'asset' | 'liability') => {
     setAddType(type);
@@ -140,6 +154,17 @@ export default function Layout() {
                         </div>
                       </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleExportPortfolio();
+                      }}
+                      disabled={exporting || !user?.email}
+                      className="w-full px-4 py-3 text-left text-sm font-medium hover:bg-dark-700/50 transition-colors flex items-center gap-3 text-dark-200 disabled:opacity-50 border-b border-dark-700/50"
+                    >
+                      {exporting ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+                      Export portfolio (JSON)
+                    </button>
                     <button
                       onClick={() => {
                         setShowUserMenu(false);

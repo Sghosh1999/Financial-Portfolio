@@ -21,16 +21,26 @@ import {
   Cell,
   PieChart,
   Pie,
+  ComposedChart,
+  Line,
+  Area,
+  CartesianGrid,
+  Legend,
 } from 'recharts';
 import { api } from '../api';
-import type { InsightsSummary, DashboardSummary } from '../types';
+import type { InsightsSummary, DashboardSummary, MonthlySavings } from '../types';
 import { formatCurrency, formatPercent } from '../utils/format';
 import InsightCard from '../components/InsightCard';
+import { useAuth } from '../context/AuthContext';
+import { exportPortfolioToFile } from '../utils/portfolioExport';
+import { Download, Loader2 } from 'lucide-react';
 
 export default function Insights() {
+  const { user } = useAuth();
   const [data, setData] = useState<InsightsSummary | null>(null);
   const [dashboardData, setDashboardData] = useState<DashboardSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -70,6 +80,18 @@ export default function Insights() {
   const formatMonthChange = () => {
     const sign = data.month_change >= 0 ? '+' : '';
     return `${sign}${formatCurrency(data.month_change, 'INR', true)}`;
+  };
+
+  const handleExport = async () => {
+    if (!user?.email) return;
+    setExporting(true);
+    try {
+      await exportPortfolioToFile(user.email, user.name);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setExporting(false);
+    }
   };
 
   const allocationData = dashboardData?.allocation.map(item => ({
@@ -120,13 +142,24 @@ export default function Insights() {
     <div className="min-h-screen">
       {/* Header */}
       <header className="sticky top-0 z-20 glass border-b border-dark-700/50">
-        <div className="max-w-3xl mx-auto px-4 py-4">
-          <h1 className="text-xl font-bold">Insights</h1>
-          <p className="text-sm text-dark-400">Your financial health at a glance</p>
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold">Insights</h1>
+            <p className="text-sm text-dark-400">Your financial health at a glance</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={exporting || !user?.email}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-dark-800 hover:bg-dark-700 border border-dark-600 text-sm font-medium text-dark-200 disabled:opacity-50 transition-colors shrink-0"
+          >
+            {exporting ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+            Export portfolio
+          </button>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-6">
+      <main className="max-w-7xl mx-auto px-4 py-6">
         {/* Primary Insights Grid */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <InsightCard
@@ -236,7 +269,7 @@ export default function Insights() {
           </motion.section>
         )}
 
-        {/* Monthly Savings Bar Chart */}
+        {/* Monthly savings + growth rate (composed) */}
         {data.monthly_savings && data.monthly_savings.length > 0 && (
           <motion.section
             initial={{ opacity: 0, y: 20 }}
@@ -249,53 +282,169 @@ export default function Insights() {
                 <BarChart3 size={18} className="text-accent-blue" />
               </div>
               <div>
-                <p className="font-medium">Monthly Savings</p>
-                <p className="text-xs text-dark-400">Net worth change per month</p>
+                <p className="font-medium">Monthly savings & growth rate</p>
+                <p className="text-xs text-dark-400">
+                  Bars: net worth change vs prior month · Line: % change vs prior month-end net worth
+                </p>
               </div>
             </div>
 
-            <div className="h-56">
+            <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.monthly_savings} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <XAxis 
-                    dataKey="month" 
+                <ComposedChart
+                  data={data.monthly_savings}
+                  margin={{ top: 10, right: 12, left: -10, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} opacity={0.35} />
+                  <XAxis
+                    dataKey="month"
                     tick={{ fill: '#8e8ea0', fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
                   />
-                  <YAxis 
+                  <YAxis
+                    yAxisId="left"
                     tick={{ fill: '#8e8ea0', fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => formatCurrency(v, 'INR', true)}
-                    width={60}
+                    width={64}
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    tick={{ fill: '#a78bfa', fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => `${v.toFixed(1)}%`}
+                    width={48}
                   />
                   <Tooltip
                     content={({ active, payload, label }) => {
                       if (active && payload && payload.length) {
-                        const value = payload[0].value as number;
+                        const row = payload[0].payload as MonthlySavings;
+                        const sav = row.savings;
+                        const rate = row.savings_rate_percent;
+                        const nw = row.net_worth_end;
                         return (
-                          <div className="glass px-3 py-2 rounded-lg shadow-xl">
-                            <p className="text-sm font-medium text-dark-200">{label}</p>
-                            <p className={`text-sm font-semibold ${value >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>
-                              {value >= 0 ? '+' : ''}{formatCurrency(value)}
+                          <div className="glass px-3 py-2 rounded-lg shadow-xl max-w-xs">
+                            <p className="text-sm font-medium text-dark-200 mb-1">{label}</p>
+                            <p className={`text-sm font-semibold ${sav >= 0 ? 'text-accent-green' : 'text-accent-red'}`}>
+                              Δ NW: {sav >= 0 ? '+' : ''}{formatCurrency(sav)}
                             </p>
+                            {rate != null && (
+                              <p className="text-sm text-accent-purple mt-1">
+                                Growth rate: {rate >= 0 ? '+' : ''}{rate.toFixed(2)}%
+                              </p>
+                            )}
+                            {nw != null && (
+                              <p className="text-xs text-dark-400 mt-1">
+                                Month-end net worth: {formatCurrency(nw, 'INR', true)}
+                              </p>
+                            )}
                           </div>
                         );
                       }
                       return null;
                     }}
                   />
-                  <Bar dataKey="savings" radius={[4, 4, 0, 0]}>
+                  <Legend
+                    wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+                    formatter={(value) => (
+                      <span className="text-dark-400">{value}</span>
+                    )}
+                  />
+                  <Bar yAxisId="left" dataKey="savings" name="Monthly savings" radius={[4, 4, 0, 0]}>
                     {data.monthly_savings.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
+                      <Cell
+                        key={`cell-${index}`}
                         fill={entry.savings >= 0 ? '#22c55e' : '#ef4444'}
-                        fillOpacity={0.8}
+                        fillOpacity={0.75}
                       />
                     ))}
                   </Bar>
-                </BarChart>
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="savings_rate_percent"
+                    name="Growth rate %"
+                    stroke="#a78bfa"
+                    strokeWidth={2}
+                    dot={{ r: 3, fill: '#a78bfa' }}
+                    connectNulls
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.section>
+        )}
+
+        {/* Net worth trajectory (month-end snapshots) */}
+        {data.monthly_savings?.some(m => m.net_worth_end != null) && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="glass-light rounded-2xl p-5 mb-6"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 rounded-lg bg-accent-green/20">
+                <TrendingUp size={18} className="text-accent-green" />
+              </div>
+              <div>
+                <p className="font-medium">Net worth trajectory</p>
+                <p className="text-xs text-dark-400">Estimated month-end net worth (same window as above)</p>
+              </div>
+            </div>
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart
+                  data={data.monthly_savings.filter(m => m.net_worth_end != null)}
+                  margin={{ top: 8, right: 8, left: -8, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="nwInsightGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} opacity={0.35} />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fill: '#8e8ea0', fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fill: '#8e8ea0', fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => `₹${(v / 100000).toFixed(1)}L`}
+                    width={56}
+                  />
+                  <Tooltip
+                    content={({ active, payload, label }) => {
+                      if (active && payload?.length) {
+                        const v = payload[0].value as number;
+                        return (
+                          <div className="glass px-3 py-2 rounded-lg shadow-xl">
+                            <p className="text-sm text-dark-200">{label}</p>
+                            <p className="text-sm font-semibold text-accent-green">{formatCurrency(v)}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="net_worth_end"
+                    name="Net worth"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    fill="url(#nwInsightGrad)"
+                  />
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </motion.section>

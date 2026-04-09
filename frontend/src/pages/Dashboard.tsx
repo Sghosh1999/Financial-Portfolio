@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Search, SlidersHorizontal, Eye, EyeOff, ArrowUpDown, Filter } from 'lucide-react';
+import { Search, SlidersHorizontal, Eye, EyeOff, ArrowUpDown, Filter, Download, Loader2 } from 'lucide-react';
 import { api } from '../api';
 import type { DashboardSummary, Tag, SortBy, SortOrder } from '../types';
 import { formatCurrency, getGreeting } from '../utils/format';
@@ -8,6 +8,7 @@ import AllocationChart from '../components/AllocationChart';
 import NetWorthTrendChart from '../components/NetWorthTrendChart';
 import ItemCard from '../components/ItemCard';
 import { useAuth } from '../context/AuthContext';
+import { exportPortfolioToFile } from '../utils/portfolioExport';
 
 type ViewFilter = 'all' | 'assets' | 'liabilities';
 
@@ -23,6 +24,7 @@ export default function Dashboard() {
   const [selectedTagId, setSelectedTagId] = useState<number | undefined>();
   const [showFilters, setShowFilters] = useState(false);
   const [hideValues, setHideValues] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -99,6 +101,25 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                title="Export portfolio JSON"
+                onClick={async () => {
+                  if (!user?.email) return;
+                  setExporting(true);
+                  try {
+                    await exportPortfolioToFile(user.email, user.name);
+                  } catch (e) {
+                    console.error(e);
+                  } finally {
+                    setExporting(false);
+                  }
+                }}
+                disabled={exporting || !user?.email}
+                className="p-2.5 hover:bg-dark-800/50 rounded-xl transition-colors disabled:opacity-50"
+              >
+                {exporting ? <Loader2 size={20} className="animate-spin" /> : <Download size={20} />}
+              </button>
               <button
                 onClick={() => setHideValues(!hideValues)}
                 className="p-2.5 hover:bg-dark-800/50 rounded-xl transition-colors"

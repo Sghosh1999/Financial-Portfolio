@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import {
-  AreaChart,
+  ComposedChart,
   Area,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
+  Brush,
 } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { TrendingUp, TrendingDown } from 'lucide-react';
@@ -57,11 +59,18 @@ export default function NetWorthTrendChart({ compact = false }: NetWorthTrendCha
     );
   }
 
-  const chartData = data.map(point => ({
-    ...point,
-    date: point.date,
-    displayDate: format(parseISO(point.date), 'MMM dd'),
-  }));
+  const chartData = data.map((point, i, arr) => {
+    const lo = Math.max(0, i - 1);
+    const hi = Math.min(arr.length, i + 2);
+    const slice = arr.slice(lo, hi);
+    const ma = slice.reduce((s, p) => s + p.net_worth, 0) / slice.length;
+    return {
+      ...point,
+      date: point.date,
+      displayDate: format(parseISO(point.date), 'MMM dd'),
+      netWorthMA: ma,
+    };
+  });
 
   const firstValue = chartData[0]?.net_worth || 0;
   const lastValue = chartData[chartData.length - 1]?.net_worth || 0;
@@ -144,11 +153,11 @@ export default function NetWorthTrendChart({ compact = false }: NetWorthTrendCha
       </div>
 
       {/* Chart */}
-      <div className={compact ? 'h-48' : 'h-64'}>
+      <div className={compact ? 'h-48' : 'h-72'}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
+          <ComposedChart
             data={chartData}
-            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            margin={{ top: 10, right: 10, left: 0, bottom: compact ? 0 : 8 }}
           >
             <defs>
               <linearGradient id="netWorthGradient" x1="0" y1="0" x2="0" y2="1">
@@ -216,9 +225,32 @@ export default function NetWorthTrendChart({ compact = false }: NetWorthTrendCha
                 strokeWidth: 2,
               }}
             />
-          </AreaChart>
+            <Line
+              type="monotone"
+              dataKey="netWorthMA"
+              stroke="#a78bfa"
+              strokeWidth={2}
+              dot={false}
+              name="Trend (3-pt avg)"
+            />
+            {!compact && chartData.length > 12 && (
+              <Brush
+                dataKey="displayDate"
+                height={22}
+                stroke="#4b5563"
+                fill="#1f2937"
+                travellerWidth={8}
+              />
+            )}
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
+      {!compact && (
+        <p className="text-[11px] text-dark-500 mt-2 text-center">
+          Purple line: 3-point moving average
+          {chartData.length > 12 ? ' · Use the range slider to zoom' : ''}
+        </p>
+      )}
 
       {/* Stats row */}
       {!compact && (

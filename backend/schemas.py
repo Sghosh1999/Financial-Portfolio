@@ -94,6 +94,8 @@ class DashboardSummary(BaseModel):
 class MonthlySavings(BaseModel):
     month: str
     savings: float
+    net_worth_end: Optional[float] = None
+    savings_rate_percent: Optional[float] = None
 
 class QuarterlySavings(BaseModel):
     quarter: str

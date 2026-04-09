@@ -60,6 +60,8 @@ export interface AllocationItem {
 export interface MonthlySavings {
   month: string;
   savings: number;
+  net_worth_end?: number;
+  savings_rate_percent?: number | null;
 }
 
 export interface QuarterlySavings {
