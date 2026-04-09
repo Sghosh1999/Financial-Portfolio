@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -9,7 +9,8 @@ import {
   MoreVertical,
   Calendar,
   StickyNote,
-  Pencil
+  Pencil,
+  ChevronDown
 } from 'lucide-react';
 import { api } from '../api';
 import type { Item, Entry, TimeSeriesResponse, TimeRange } from '../types';
@@ -18,6 +19,8 @@ import TimeSeriesChart from '../components/TimeSeriesChart';
 import AddEntryModal from '../components/AddEntryModal';
 import EditItemModal from '../components/EditItemModal';
 import EditEntryModal from '../components/EditEntryModal';
+
+const INITIAL_ENTRIES_COUNT = 10;
 
 export default function ItemDetail() {
   const { id } = useParams<{ id: string }>();
@@ -32,10 +35,11 @@ export default function ItemDetail() {
   const [showEditItem, setShowEditItem] = useState(false);
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [visibleEntriesCount, setVisibleEntriesCount] = useState(INITIAL_ENTRIES_COUNT);
 
   const itemId = parseInt(id || '0');
 
-  const fetchData = async () => {
+  const fetchData = async (resetPagination = false) => {
     try {
       const [itemData, timeseriesData] = await Promise.all([
         api.items.get(itemId),
@@ -43,6 +47,9 @@ export default function ItemDetail() {
       ]);
       setItem(itemData);
       setTimeseries(timeseriesData);
+      if (resetPagination) {
+        setVisibleEntriesCount(INITIAL_ENTRIES_COUNT);
+      }
     } catch (error) {
       console.error('Failed to fetch item:', error);
     } finally {
@@ -120,6 +127,20 @@ export default function ItemDetail() {
 
   const isAsset = item.type === 'asset';
   const isPositiveChange = isAsset ? changeAmount >= 0 : changeAmount <= 0;
+
+  const sortedEntries = useMemo(() => {
+    return [...item.entries].sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }, [item.entries]);
+
+  const visibleEntries = sortedEntries.slice(0, visibleEntriesCount);
+  const hasMoreEntries = sortedEntries.length > visibleEntriesCount;
+  const remainingCount = sortedEntries.length - visibleEntriesCount;
+
+  const handleShowMore = () => {
+    setVisibleEntriesCount(prev => prev + 20);
+  };
 
   return (
     <div className="min-h-screen">
@@ -257,11 +278,16 @@ export default function ItemDetail() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <h3 className="text-lg font-semibold mb-4">History</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">History</h3>
+            <span className="text-sm text-dark-500">
+              {sortedEntries.length} {sortedEntries.length === 1 ? 'entry' : 'entries'}
+            </span>
+          </div>
           <div className="space-y-2">
-            {item.entries.map((entry, index) => {
-              const prevEntry = item.entries[index + 1] as Entry | undefined;
-              const entryChange = prevEntry ? entry.amount - prevEntry.amount : 0;
+            {visibleEntries.map((entry, index) => {
+              const nextEntryInTime = sortedEntries[index + 1] as Entry | undefined;
+              const entryChange = nextEntryInTime ? entry.amount - nextEntryInTime.amount : 0;
               const isEntryPositive = isAsset ? entryChange >= 0 : entryChange <= 0;
 
               return (
@@ -269,7 +295,7 @@ export default function ItemDetail() {
                   key={entry.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + index * 0.05 }}
+                  transition={{ delay: Math.min(0.3 + index * 0.03, 0.6) }}
                   className="flex items-center gap-4 p-4 bg-dark-900/50 hover:bg-dark-800/50 rounded-xl group transition-colors"
                 >
                   <div className={`w-1 h-12 rounded-full ${
@@ -285,7 +311,7 @@ export default function ItemDetail() {
                     <div className="flex items-center gap-2 text-xs text-dark-500">
                       <Calendar size={12} />
                       {formatRelativeTime(entry.date)}
-                      {entryChange !== 0 && prevEntry && (
+                      {entryChange !== 0 && nextEntryInTime && (
                         <span className={isEntryPositive ? 'text-accent-green' : 'text-accent-red'}>
                           ({entryChange >= 0 ? '+' : ''}{formatCurrency(entryChange, item.currency, true)})
                         </span>
@@ -320,7 +346,19 @@ export default function ItemDetail() {
               );
             })}
 
-            {item.entries.length === 0 && (
+            {hasMoreEntries && (
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                onClick={handleShowMore}
+                className="w-full py-4 mt-4 rounded-xl border border-dark-700 hover:border-dark-600 hover:bg-dark-800/30 transition-all flex items-center justify-center gap-2 text-dark-400 hover:text-dark-200"
+              >
+                <ChevronDown size={18} />
+                Show More ({remainingCount} more {remainingCount === 1 ? 'entry' : 'entries'})
+              </motion.button>
+            )}
+
+            {sortedEntries.length === 0 && (
               <div className="text-center py-12 text-dark-500">
                 <p>No entries yet</p>
                 <p className="text-sm mt-1">Add your first entry to start tracking</p>
