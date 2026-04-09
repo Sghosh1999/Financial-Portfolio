@@ -82,7 +82,7 @@ export default function Insights() {
   })) || [];
 
   const renderCustomizedLabel = ({ 
-    cx, cy, midAngle, outerRadius, percent, name 
+    cx, cy, midAngle, outerRadius, percent, name, value 
   }: {
     cx: number;
     cy: number;
@@ -90,6 +90,7 @@ export default function Insights() {
     outerRadius: number;
     percent: number;
     name: string;
+    value: number;
   }) => {
     const RADIAN = Math.PI / 180;
     const radius = outerRadius + 30;
