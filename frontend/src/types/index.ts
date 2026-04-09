@@ -103,3 +103,14 @@ export interface TimeSeriesResponse {
 export type SortBy = 'value' | 'name' | 'updated';
 export type SortOrder = 'asc' | 'desc';
 export type TimeRange = '6m' | 'ytd' | '1y' | '2y' | '4y' | '5y' | 'all';
+
+export interface NetWorthHistoryPoint {
+  date: string;
+  net_worth: number;
+  assets: number;
+  liabilities: number;
+}
+
+export interface NetWorthHistoryResponse {
+  data: NetWorthHistoryPoint[];
+}

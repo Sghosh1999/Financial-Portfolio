@@ -619,6 +619,79 @@ def get_timeseries(
         data=data
     )
 
+# Net Worth History endpoint
+@app.get("/api/networth-history")
+def get_networth_history(
+    range: str = Query("1y", enum=["6m", "ytd", "1y", "2y", "4y", "5y", "all"]),
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user)
+):
+    items = db.query(ItemModel).filter(ItemModel.user_id == current_user.id).all()
+    
+    if not items:
+        return {"data": []}
+    
+    now = datetime.now(timezone.utc)
+    start_date = None
+    
+    if range == "6m":
+        start_date = now - relativedelta(months=6)
+    elif range == "ytd":
+        start_date = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+    elif range == "1y":
+        start_date = now - relativedelta(years=1)
+    elif range == "2y":
+        start_date = now - relativedelta(years=2)
+    elif range == "4y":
+        start_date = now - relativedelta(years=4)
+    elif range == "5y":
+        start_date = now - relativedelta(years=5)
+    
+    all_entries = db.query(EntryModel).join(ItemModel).filter(
+        ItemModel.user_id == current_user.id
+    ).order_by(EntryModel.date).all()
+    
+    if start_date:
+        start_date_naive = start_date.replace(tzinfo=None)
+        all_entries = [e for e in all_entries if to_naive_datetime(e.date) >= start_date_naive]
+    
+    unique_dates = sorted(set(to_naive_datetime(e.date).date() for e in all_entries if e.date))
+    
+    if not unique_dates:
+        return {"data": []}
+    
+    history = []
+    item_latest_values = {item.id: 0 for item in items}
+    item_types = {item.id: item.type for item in items}
+    
+    all_item_entries = {}
+    for item in items:
+        entries = db.query(EntryModel).filter(
+            EntryModel.item_id == item.id
+        ).order_by(EntryModel.date).all()
+        all_item_entries[item.id] = entries
+    
+    for date in unique_dates:
+        for item_id, entries in all_item_entries.items():
+            for entry in entries:
+                entry_date = to_naive_datetime(entry.date).date() if entry.date else None
+                if entry_date and entry_date <= date:
+                    item_latest_values[item_id] = entry.amount
+        
+        total_assets = sum(v for item_id, v in item_latest_values.items() if item_types[item_id] == "asset")
+        total_liabilities = sum(v for item_id, v in item_latest_values.items() if item_types[item_id] == "liability")
+        net_worth = total_assets - total_liabilities
+        
+        history.append({
+            "date": date.isoformat(),
+            "net_worth": net_worth,
+            "assets": total_assets,
+            "liabilities": total_liabilities
+        })
+    
+    return {"data": history}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

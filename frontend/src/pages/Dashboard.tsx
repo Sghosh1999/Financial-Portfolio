@@ -5,6 +5,7 @@ import { api } from '../api';
 import type { DashboardSummary, Tag, SortBy, SortOrder } from '../types';
 import { formatCurrency, getGreeting } from '../utils/format';
 import AllocationChart from '../components/AllocationChart';
+import NetWorthTrendChart from '../components/NetWorthTrendChart';
 import ItemCard from '../components/ItemCard';
 import { useAuth } from '../context/AuthContext';
 
@@ -86,7 +87,7 @@ export default function Dashboard() {
     <div className="min-h-screen">
       {/* Header */}
       <header className="sticky top-0 z-20 glass border-b border-dark-700/50">
-        <div className="max-w-3xl mx-auto px-4 py-4">
+        <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-green to-accent-blue flex items-center justify-center text-dark-950 font-bold text-sm">
@@ -117,21 +118,11 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        {/* Allocation Chart */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass rounded-2xl p-6"
-        >
-          <AllocationChart data={data.allocation} totalAssets={data.total_assets} />
-        </motion.section>
-
+      <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         {/* Net Worth Hero */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
           className="text-center py-4"
         >
           <p className="text-sm text-dark-400 mb-1">Your total net worth is</p>
@@ -140,12 +131,36 @@ export default function Dashboard() {
           </h1>
         </motion.section>
 
+        {/* Charts Row - Side by Side on Desktop */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Allocation Chart */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="glass rounded-2xl p-6"
+          >
+            <AllocationChart data={data.allocation} totalAssets={data.total_assets} />
+          </motion.section>
+
+          {/* Net Worth Trend Chart */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="glass rounded-2xl p-6"
+          >
+            <NetWorthTrendChart />
+          </motion.section>
+        </div>
+
         {/* Filters Panel */}
         {showFilters && (
           <motion.section
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
+            transition={{ delay: 0.3 }}
             className="glass rounded-2xl p-4 space-y-4"
           >
             {/* Search */}
@@ -251,25 +266,29 @@ export default function Dashboard() {
 
           {/* Assets */}
           {(viewFilter === 'all' || viewFilter === 'assets') && assets.length > 0 && (
-            <div className="space-y-2 mb-6">
+            <div className="mb-6">
               {viewFilter === 'all' && (
                 <h3 className="text-sm font-medium text-dark-400 mb-3">Assets</h3>
               )}
-              {assets.map((item, index) => (
-                <ItemCard key={item.id} item={item} index={index} />
-              ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {assets.map((item, index) => (
+                  <ItemCard key={item.id} item={item} index={index} />
+                ))}
+              </div>
             </div>
           )}
 
           {/* Liabilities */}
           {(viewFilter === 'all' || viewFilter === 'liabilities') && liabilities.length > 0 && (
-            <div className="space-y-2">
+            <div>
               {viewFilter === 'all' && (
                 <h3 className="text-sm font-medium text-dark-400 mb-3">Liabilities</h3>
               )}
-              {liabilities.map((item, index) => (
-                <ItemCard key={item.id} item={item} index={index} />
-              ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {liabilities.map((item, index) => (
+                  <ItemCard key={item.id} item={item} index={index} />
+                ))}
+              </div>
             </div>
           )}
 

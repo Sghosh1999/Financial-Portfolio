@@ -5,6 +5,7 @@ import type {
   DashboardSummary,
   InsightsSummary,
   TimeSeriesResponse,
+  NetWorthHistoryResponse,
   SortBy,
   SortOrder,
   TimeRange,
@@ -134,6 +135,11 @@ export const api = {
   timeseries: {
     get: (itemId: number, range: TimeRange = 'all') =>
       fetchAPI<TimeSeriesResponse>(`/items/${itemId}/timeseries?range=${range}`),
+  },
+
+  networthHistory: {
+    get: (range: TimeRange = '1y') =>
+      fetchAPI<NetWorthHistoryResponse>(`/networth-history?range=${range}`),
   },
 
   seed: () => fetchAPI<{ message: string }>('/seed', { method: 'POST' }),
