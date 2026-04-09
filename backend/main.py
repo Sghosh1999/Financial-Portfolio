@@ -397,6 +397,15 @@ def get_dashboard(
     )
 
 # Insights endpoint
+def to_naive_datetime(dt):
+    """Convert any date/datetime to naive datetime for comparison"""
+    if dt is None:
+        return None
+    if isinstance(dt, datetime):
+        return dt.replace(tzinfo=None) if dt.tzinfo else dt
+    # If it's a date object, convert to datetime
+    return datetime.combine(dt, datetime.min.time())
+
 @app.get("/api/insights", response_model=InsightsSummary)
 def get_insights(
     db: Session = Depends(get_db),
@@ -412,28 +421,36 @@ def get_insights(
     
     now = datetime.now(timezone.utc)
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    month_start_naive = month_start.replace(tzinfo=None)
     
     month_start_values = {}
-    month_start_naive = month_start.replace(tzinfo=None)
     for item in items:
-        entry = db.query(EntryModel).filter(
-            EntryModel.item_id == item.id,
-            EntryModel.date <= month_start_naive
-        ).order_by(desc(EntryModel.date)).first()
-        if entry:
-            month_start_values[item.id] = entry.amount
-        else:
-            first_entry = db.query(EntryModel).filter(
+        try:
+            entry = db.query(EntryModel).filter(
                 EntryModel.item_id == item.id
-            ).order_by(EntryModel.date).first()
-            if first_entry:
-                entry_date = first_entry.date.replace(tzinfo=None) if first_entry.date.tzinfo else first_entry.date
-                if entry_date <= month_start_naive:
-                    month_start_values[item.id] = first_entry.amount
+            ).order_by(desc(EntryModel.date)).first()
+            
+            if entry:
+                entry_date = to_naive_datetime(entry.date)
+                if entry_date and entry_date <= month_start_naive:
+                    month_start_values[item.id] = entry.amount
                 else:
-                    month_start_values[item.id] = 0
+                    # Get the entry closest to month start
+                    closest_entry = db.query(EntryModel).filter(
+                        EntryModel.item_id == item.id
+                    ).order_by(EntryModel.date).first()
+                    if closest_entry:
+                        closest_date = to_naive_datetime(closest_entry.date)
+                        if closest_date and closest_date <= month_start_naive:
+                            month_start_values[item.id] = closest_entry.amount
+                        else:
+                            month_start_values[item.id] = 0
+                    else:
+                        month_start_values[item.id] = 0
             else:
                 month_start_values[item.id] = 0
+        except Exception:
+            month_start_values[item.id] = 0
     
     month_start_assets = sum(
         month_start_values.get(item.id, 0) for item in items if item.type == "asset"
@@ -458,12 +475,19 @@ def get_insights(
         
         month_values = {}
         for item in items:
-            entry = db.query(EntryModel).filter(
-                EntryModel.item_id == item.id,
-                EntryModel.date <= month_end_naive
-            ).order_by(desc(EntryModel.date)).first()
-            if entry:
-                month_values[item.id] = (entry.amount, item.type)
+            try:
+                # Get all entries and filter in Python to avoid date comparison issues
+                entries = db.query(EntryModel).filter(
+                    EntryModel.item_id == item.id
+                ).order_by(desc(EntryModel.date)).all()
+                
+                for entry in entries:
+                    entry_date = to_naive_datetime(entry.date)
+                    if entry_date and entry_date <= month_end_naive:
+                        month_values[item.id] = (entry.amount, item.type)
+                        break
+            except Exception:
+                pass
         
         assets = sum(v[0] for v in month_values.values() if v[1] == "asset")
         liabilities = sum(v[0] for v in month_values.values() if v[1] == "liability")
