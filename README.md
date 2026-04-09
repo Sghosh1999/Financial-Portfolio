@@ -540,13 +540,46 @@ Financial-Portfolio/
 
 ## Screenshots
 
-The app features a dark, professional UI with:
-- Side-by-side layout with allocation pie chart and net worth trend chart
-- Interactive gradient area chart showing portfolio growth
-- Sparkline graphs in the asset list
-- Smooth animations and transitions
-- Glass morphism effects
-- Responsive grid layout for assets
+The app features a dark, professional UI with glass morphism effects, smooth animations, and responsive design.
+
+### Landing Page
+Beautiful landing page with feature highlights and call-to-action.
+
+<p align="center">
+  <img src="screenshots/01-landing-page.png" width="300" alt="Landing Page" />
+  <img src="screenshots/02-landing-features.png" width="300" alt="Features Section" />
+</p>
+
+### Dashboard
+Interactive allocation chart and real-time net worth display.
+
+<p align="center">
+  <img src="screenshots/03-dashboard-chart.png" width="300" alt="Dashboard Chart" />
+  <img src="screenshots/06-allocation-labels.png" width="300" alt="Allocation with Labels" />
+</p>
+
+### Assets & Liabilities
+Track all your assets with sparkline graphs showing trends and change indicators.
+
+<p align="center">
+  <img src="screenshots/04-assets-list.png" width="300" alt="Assets List" />
+</p>
+
+### Insights
+Comprehensive financial insights with key metrics and analytics.
+
+<p align="center">
+  <img src="screenshots/05-insights-cards.png" width="300" alt="Insights Cards" />
+  <img src="screenshots/07-insights-more.png" width="300" alt="More Insights" />
+</p>
+
+### Key UI Features
+- **Dark Theme**: Professional dark mode design
+- **Glass Morphism**: Modern frosted glass effects
+- **Responsive Layout**: Works on mobile and desktop
+- **Interactive Charts**: Hover tooltips and click interactions
+- **Smooth Animations**: Framer Motion powered transitions
+- **Color-coded Tags**: Visual organization of assets
 
 ## License
 
