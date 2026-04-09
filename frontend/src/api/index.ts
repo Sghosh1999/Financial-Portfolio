@@ -11,7 +11,7 @@ import type {
   ItemType,
 } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+const API_BASE = 'https://portfolio-api-vne0.onrender.com/api';
 
 function getAuthToken(): string | null {
   return localStorage.getItem('auth_token');
