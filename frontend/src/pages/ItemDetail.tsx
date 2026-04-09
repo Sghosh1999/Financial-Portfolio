@@ -20,7 +20,7 @@ import AddEntryModal from '../components/AddEntryModal';
 import EditItemModal from '../components/EditItemModal';
 import EditEntryModal from '../components/EditEntryModal';
 
-const INITIAL_ENTRIES_COUNT = 10;
+const INITIAL_ENTRIES_COUNT = 15;
 
 export default function ItemDetail() {
   const { id } = useParams<{ id: string }>();
