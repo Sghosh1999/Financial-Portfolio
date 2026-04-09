@@ -157,6 +157,21 @@ def get_items(
         query = query.filter(ItemModel.type == type.value)
     return query.all()
 
+
+@app.delete("/api/items/clear")
+def clear_all_items(
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    """Delete every asset and liability for the current user (entries cascade)."""
+    items = db.query(ItemModel).filter(ItemModel.user_id == current_user.id).all()
+    count = len(items)
+    for item in items:
+        db.delete(item)
+    db.commit()
+    return {"message": "All items removed", "deleted": count}
+
+
 @app.get("/api/items/{item_id}", response_model=Item)
 def get_item(
     item_id: int,
@@ -199,6 +214,7 @@ def update_item(
     db.commit()
     db.refresh(db_item)
     return db_item
+
 
 @app.delete("/api/items/{item_id}")
 def delete_item(

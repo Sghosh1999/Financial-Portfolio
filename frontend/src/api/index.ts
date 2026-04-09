@@ -90,6 +90,10 @@ export const api = {
       }),
     delete: (id: number) =>
       fetchAPI<void>(`/items/${id}`, { method: 'DELETE' }),
+    clearAll: () =>
+      fetchAPI<{ message: string; deleted: number }>('/items/clear', {
+        method: 'DELETE',
+      }),
   },
 
   entries: {
