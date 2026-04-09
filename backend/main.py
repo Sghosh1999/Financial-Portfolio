@@ -36,9 +36,14 @@ ALLOWED_ORIGINS = [
     "https://www.financial-portfolio-delta.vercel.app",
 ]
 
+def get_allowed_origins(request_origin: str = None):
+    if request_origin and "vercel.app" in request_origin:
+        return True
+    return request_origin in ALLOWED_ORIGINS
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://.*\.vercel\.app|http://localhost:\d+|http://127\.0\.0\.1:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
