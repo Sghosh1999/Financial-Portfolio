@@ -414,10 +414,11 @@ def get_insights(
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     
     month_start_values = {}
+    month_start_naive = month_start.replace(tzinfo=None)
     for item in items:
         entry = db.query(EntryModel).filter(
             EntryModel.item_id == item.id,
-            EntryModel.date <= month_start
+            EntryModel.date <= month_start_naive
         ).order_by(desc(EntryModel.date)).first()
         if entry:
             month_start_values[item.id] = entry.amount
@@ -425,8 +426,12 @@ def get_insights(
             first_entry = db.query(EntryModel).filter(
                 EntryModel.item_id == item.id
             ).order_by(EntryModel.date).first()
-            if first_entry and first_entry.date <= month_start:
-                month_start_values[item.id] = first_entry.amount
+            if first_entry:
+                entry_date = first_entry.date.replace(tzinfo=None) if first_entry.date.tzinfo else first_entry.date
+                if entry_date <= month_start_naive:
+                    month_start_values[item.id] = first_entry.amount
+                else:
+                    month_start_values[item.id] = 0
             else:
                 month_start_values[item.id] = 0
     
@@ -448,13 +453,14 @@ def get_insights(
     for i in range(12):
         date = now - relativedelta(months=i)
         month_end = date.replace(day=1) - timedelta(days=1) if i > 0 else now
+        month_end_naive = month_end.replace(tzinfo=None)
         monthly_dates.append(date)
         
         month_values = {}
         for item in items:
             entry = db.query(EntryModel).filter(
                 EntryModel.item_id == item.id,
-                EntryModel.date <= month_end
+                EntryModel.date <= month_end_naive
             ).order_by(desc(EntryModel.date)).first()
             if entry:
                 month_values[item.id] = (entry.amount, item.type)
